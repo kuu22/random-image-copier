@@ -13,5 +13,12 @@ public class Utils {
 	public static int randomInt(int max) {
 		return randomInt(0, max);
 	}
+	
+	public static int max(int a, int b) {
+		if(a > b)
+			return a;
+		else
+			return b;
+	}
 
 }

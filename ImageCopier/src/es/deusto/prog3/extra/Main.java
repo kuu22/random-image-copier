@@ -1,24 +1,28 @@
 package es.deusto.prog3.extra;
 
+import java.awt.BasicStroke;
 import java.awt.Canvas;
 import java.awt.Color;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 
 import javax.imageio.ImageIO;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 
 import es.deusto.prog3.extra.utils.Utils;
 
 /**
  * Small project I wanted to make. This is what it does.
- * - Load a source image from file.
+ * - Load a source image from file (not too big, as it will take long).
  * - Get the list of all colors from the source image
  * - Generate two blank BufferedImages (image1 and image2)
- * - Draw a circle of a random color from the list in a random position on image1
+ * - Draw a line of a random color from the list in a random position on image1
  * - Compare both images to the source image. 
  * - If it's closer to the source image than image2, copy image1 to image2; if not, copy image2 to image1 and repeat the process a number of iterations.
  * 
@@ -28,21 +32,25 @@ import es.deusto.prog3.extra.utils.Utils;
 public class Main {
 	
 	private static int iterations = 1000000;
-	private static int circleRadius = 10;
-	static BufferedImage image1;
-	static BufferedImage image2;
-	static BufferedImage source;
+	private static int maxLength;
+	private static BufferedImage image1;
+	private static BufferedImage image2;
+	private static BufferedImage source;
 	
 	private static ArrayList<Integer> colors = new ArrayList<Integer>();
 
 	public static void main(String[] args) {
-		File imageFile = new File("image.jpg");
+		JFileChooser fc = new JFileChooser();
+		fc.showOpenDialog(null);
+		File imageFile = fc.getSelectedFile();
 		source = null;
 		try {
 			source = ImageIO.read(imageFile);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		
+		maxLength = Utils.max(source.getHeight(), source.getWidth()) / 50;
 		
 		for (int i = 0; i < source.getWidth(); i++) {
 			for (int j = 0; j < source.getHeight(); j++) {
@@ -55,25 +63,29 @@ public class Main {
 		
 		JFrame frame = new JFrame();
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frame.setSize(source.getWidth(), source.getHeight() + 10);
+		frame.setSize(source.getWidth(), source.getHeight() + 40);
 		Canvas canvas = new Canvas();
 		canvas.setSize(source.getWidth(), source.getHeight());
 		frame.getContentPane().add(canvas);
 		frame.setVisible(true);
 		new Thread() {
 			public void run() {
-				for (int i = 1; i < iterations; i++) {
+				int image = 0;
+				long start = System.currentTimeMillis();
+				for (int i = 1; i <= iterations; i++) {
 					
-					Graphics g1 = image1.getGraphics();
+					Graphics2D g1 = (Graphics2D) image1.getGraphics();
+					g1.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 					g1.setColor(new Color(colors.get(Utils.randomInt(colors.size() - 1))));
-					int x = Utils.randomInt(image1.getWidth());
-					int y = Utils.randomInt(image1.getHeight());
-					g1.fillOval(x, y, circleRadius, circleRadius);
+					g1.setStroke(new BasicStroke(maxLength / 4f));
+					int x = Utils.randomInt(image1.getWidth() - 1);
+					int y = Utils.randomInt(image1.getHeight() - 1);
+					int x2 = Utils.randomInt(x - maxLength, x + maxLength);
+					int y2 = Utils.randomInt(y - maxLength, y + maxLength);
+					g1.drawLine(x, y, x2, y2);
 					g1.dispose();
-					
-					long diffToSource1 = getDiffPercent(image1, source, x, y);
-					long diffToSource2 = getDiffPercent(image2, source, x, y);
-					
+					long diffToSource1 = getDiffPercent(image1, source, x, y, x2, y2);
+					long diffToSource2 = getDiffPercent(image2, source, x, y, x2, y2);
 					if(diffToSource1 < diffToSource2) {
 						Graphics g = image2.getGraphics();
 						g.drawImage(image1, 0, 0, null);
@@ -84,31 +96,46 @@ public class Main {
 						g.dispose();
 					}
 					
+					
 					if(i % 100 == 0) {
 						Graphics canvasG = canvas.getGraphics();
 						canvasG.drawImage(image1, 0, 0, null);
 						canvasG.dispose();
-						if(i % (iterations/circleRadius) == 0) {
+						if(i % 100000 == 0) {
 							System.out.println(i);
-							circleRadius--;
+							if(maxLength > 4)
+								maxLength -= 1;
 						}
 					}
 					
 				}
-				System.out.println("Finished! " + iterations + " iterations.");
+				System.out.println("Finished! " + iterations + " iterations in " + (System.currentTimeMillis() - start)/1000 + " seconds.");
 			}
 		}.start();
 		
 	}
 	
-	public static long getDiffPercent(BufferedImage img1, BufferedImage img2, int x, int y) {
+	public static long getDiffPercent(BufferedImage img1, BufferedImage img2, int x, int y, int x2, int y2) {
 		long diff = 0;
-		for (int i = x; i < x + circleRadius; i++) {
-			if(i == img1.getWidth()) {
+		if(x2 < x) {
+			int temp = x2;
+			x2 = x;
+			x = temp;
+			
+		}
+		
+		if(y2 < y) {
+			int temp = y2;
+			y2 = y;
+			y = temp;
+			
+		}
+		for (int i = x; i < x2; i++) {
+			if(i >= img1.getWidth() || i <= 0) {
 				break;
 			}
-			for(int j = y; j < y + circleRadius; j++) {
-				if(j == img1.getHeight()) {
+			for(int j = y; j < y2; j++) {
+				if(j >= img1.getHeight() || j <= 0) {
 					break;
 				}
 				diff+= pixelDiff(img1.getRGB(i, j), img2.getRGB(i, j));
