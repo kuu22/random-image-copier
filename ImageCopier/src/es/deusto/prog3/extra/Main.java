@@ -54,9 +54,17 @@ public class Main {
 			source = ImageIO.read(imageFile);
 		} catch (IOException e) {
 			e.printStackTrace();
+		} catch (Exception e) {
+			System.exit(1);
 		}
 
-		maxLength = Utils.max(source.getHeight(), source.getWidth()) / 50;
+		try {
+			maxLength = Utils.max(source.getHeight(), source.getWidth()) / 50;
+		} catch (NullPointerException e) {
+			// TODO Auto-generated catch block
+			JOptionPane.showMessageDialog(null, "That is not a valid image", "Error", JOptionPane.ERROR_MESSAGE);
+			System.exit(1);
+		}
 
 		for (int i = 0; i < source.getWidth(); i++) {
 			for (int j = 0; j < source.getHeight(); j++) {
