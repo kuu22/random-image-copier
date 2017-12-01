@@ -6,6 +6,8 @@ import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -79,10 +81,9 @@ public class Main {
 		DrawingPanel canvas = new DrawingPanel(image1);
 		canvas.setPreferredSize(new Dimension(source.getWidth(), source.getHeight()));
 		frame.getContentPane().add(canvas);
-		frame.setResizable(false);
 		frame.pack();
 		frame.setVisible(true);
-		new Thread() {
+		Thread updater = new Thread() {
 			public void run() {
 				long start = System.currentTimeMillis();
 				for (int i = 1; i <= iterations; i++) {
@@ -97,8 +98,8 @@ public class Main {
 					int y2 = Utils.randomInt(y - maxLength, y + maxLength);
 					g1.drawLine(x, y, x2, y2);
 					g1.dispose();
-					long diffToSource1 = getDiffPercent(image1, source, x, y, x2, y2);
-					long diffToSource2 = getDiffPercent(image2, source, x, y, x2, y2);
+					long diffToSource1 = getDiff(image1, source, x, y, x2, y2);
+					long diffToSource2 = getDiff(image2, source, x, y, x2, y2);
 					if (diffToSource1 < diffToSource2) {
 						Graphics g = image2.getGraphics();
 						g.drawImage(image1, 0, 0, null);
@@ -120,11 +121,22 @@ public class Main {
 				JOptionPane.showMessageDialog(frame, "Finished! " + iterations + " iterations in "
 						+ (System.currentTimeMillis() - start) / 1000 + " seconds.");
 			}
-		}.start();
+		};
+		
+		updater.start();
+		frame.addWindowListener(new WindowAdapter() {
+
+			@Override
+			public void windowClosed(WindowEvent e) {
+				// TODO Auto-generated method stub
+				updater.interrupt();
+			}
+			
+		});
 
 	}
 
-	public static long getDiffPercent(BufferedImage img1, BufferedImage img2, int x, int y, int x2, int y2) {
+	public static long getDiff(BufferedImage img1, BufferedImage img2, int x, int y, int x2, int y2) {
 		long diff = 0;
 		if (x2 < x) {
 			int temp = x2;
