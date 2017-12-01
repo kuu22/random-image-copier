@@ -63,10 +63,7 @@ public class Main {
 		try {
 			maxLength = Utils.max(source.getHeight(), source.getWidth()) / 50;
 		} catch (NullPointerException e) {
-<<<<<<< HEAD
-=======
-			// TODO Auto-generated catch block
->>>>>>> branch 'master' of https://github.com/kuu22/random-image-copier.git
+
 			JOptionPane.showMessageDialog(null, "That is not a valid image", "Error", JOptionPane.ERROR_MESSAGE);
 			System.exit(1);
 		}
